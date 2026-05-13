@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#0B0F1A] text-white;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Custom Professional Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+}
+
+/* Smooth Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  @apply bg-[#161B26]/60 backdrop-blur-xl border border-white/5 shadow-2xl;
+}
+
+.glass-hover {
+  @apply hover:bg-[#161B26]/80 hover:border-white/10 transition-all duration-300;
+}
+
+/* Selection Color */
+::selection {
+  @apply bg-[#7C3AED]/30 text-white;
+}
+
+/* Custom Alerts Redesign */
+.custom-alert {
+  @apply fixed top-6 right-6 px-6 py-4 rounded-2xl flex items-center justify-between shadow-2xl z-[1000] border backdrop-blur-xl;
+  animation: slideInRight 0.5s ease-out forwards;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.custom-alert.success { @apply bg-[#10B981]/10 border-[#10B981]/20 text-[#10B981]; }
+.custom-alert.error { @apply bg-red-500/10 border-red-500/20 text-red-400; }
+.custom-alert.warning { @apply bg-yellow-500/10 border-yellow-500/20 text-yellow-400; }
+.custom-alert.info { @apply bg-[#7C3AED]/10 border-[#7C3AED]/20 text-purple-300; }
