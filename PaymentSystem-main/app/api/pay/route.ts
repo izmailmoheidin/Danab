@@ -77,24 +77,91 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await processPayment(parsed);
-
     return NextResponse.json(result);
   } catch (error) {
     if (isHttpError(error)) {
-      const payload = error.details
-        ? {
-            error: error.message,
+      // Map each error status to a clear, user-friendly bilingual message
+      const errorMessages: Record<number, { en: string; so: string }> = {
+        400: {
+          en: "Invalid request. Please check your phone number and amount.",
+          so: "Codsigu waa khalad. Fadlan hubi lambarka iyo lacagta.",
+        },
+        403: {
+          en: "This phone number is blocked. Please contact support.",
+          so: "Lambarkan waa la joojiyay. Fadlan la xiriir support.",
+        },
+        409: {
+          en: "A payment is already in progress. Please wait 2 minutes.",
+          so: "Lacag bixin ayaa horey u socota. Fadlan sug 2 daqiiqo.",
+        },
+        429: {
+          en: "Too many attempts. Please wait 5 minutes.",
+          so: "Isku day badan. Fadlan sug 5 daqiiqo.",
+        },
+        502: {
+          en: "Payment system error. Please contact support.",
+          so: "Khalad nidaamka lacag-bixinta. Fadlan la xiriir support.",
+        },
+        503: {
+          en: "This station is currently offline. Please try another station.",
+          so: "Istaashan hadda ma shaqeyso. Fadlan isku day mid kale.",
+        },
+        504: {
+          en: "Payment timed out. Please check your phone for USSD prompt.",
+          so: "Waqtiga lacag-bixinta wuu dhamaaday. Fadlan hubi telefoonkaaga USSD.",
+        },
+      };
 
-            ...(error.details as Record<string, unknown>),
-          }
-        : { error: error.message };
+      const userMessage = errorMessages[error.status] || {
+        en: error.message,
+        so: error.message,
+      };
+
+      const payload = {
+        error: `${userMessage.en} / ${userMessage.so}`,
+        errorCode: error.status,
+        ...(error.details ? (error.details as Record<string, unknown>) : {}),
+      };
 
       return NextResponse.json(payload, { status: error.status });
     }
 
-    const message =
-      error instanceof Error ? error.message : "Internal server error";
+    const rawMessage = error instanceof Error ? error.message : "Internal server error";
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Detect common failure patterns and give friendly messages
+    const lower = rawMessage.toLowerCase();
+    let friendlyMessage: string;
+
+    if (lower.includes("timeout") || lower.includes("timed out")) {
+      friendlyMessage =
+        "Payment request timed out (server limit). Please wait 2 minutes then try again. / " +
+        "Codsiga lacag-bixinta waqti ayuu qaaday (xaddidaan server). Fadlan sug 2 daqiiqo kadibna isku day.";
+    } else if (lower.includes("waafi") && (lower.includes("401") || lower.includes("unauthorized"))) {
+      friendlyMessage =
+        "Payment provider authentication failed. Please contact support. / " +
+        "Xaqiijinta bixiye-lacaggu waa qaldantay. Fadlan la xiriir support.";
+    } else if (lower.includes("waafi") && (lower.includes("403") || lower.includes("forbidden"))) {
+      friendlyMessage =
+        "Payment provider access denied. Please contact support. / " +
+        "Helitaanka bixiye-lacaggu waa la diiday. Fadlan la xiriir support.";
+    } else if (lower.includes("no available battery")) {
+      friendlyMessage =
+        "No power bank is ready at this station. Please try another station. / " +
+        "Ma jiro powerbank diyaar ah oo ku jira istaashan. Fadlan isku day mid kale.";
+    } else if (lower.includes("hey") && lower.includes("402")) {
+      friendlyMessage =
+        "This station is offline. Please try another station. / " +
+        "Istaashan hadda ma shaqeyso. Fadlan isku day mid kale.";
+    } else if (lower.includes("missing") && lower.includes("env")) {
+      friendlyMessage =
+        "Server configuration error. Please contact support. / " +
+        "Khalad qaabeynta server-ka. Fadlan la xiriir support.";
+    } else {
+      friendlyMessage =
+        `Payment failed: ${rawMessage}. Please try again or contact support. / ` +
+        `Lacag bixintu ma dhicin: ${rawMessage}. Fadlan mar kale isku day ama la xiriir support.`;
+    }
+
+    return NextResponse.json({ error: friendlyMessage }, { status: 500 });
   }
 }
