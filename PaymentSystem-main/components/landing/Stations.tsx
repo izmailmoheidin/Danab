@@ -21,17 +21,6 @@ export function Stations() {
 
   useEffect(() => {
     let cancelled = false;
-    const isLocalHost = (() => {
-      if (typeof window === "undefined") return false;
-      const h = window.location.hostname;
-      return (
-        h === "localhost" ||
-        h === "127.0.0.1" ||
-        h.endsWith(".local") ||
-        h.startsWith("192.168.") ||
-        h.startsWith("10.")
-      );
-    })();
     const load = async () => {
       try {
         const res = await fetch("/api/mobile/stations", { cache: "no-store" });
@@ -41,11 +30,12 @@ export function Stations() {
           setErrorMessage(body?.error || "Failed to load stations");
           setStations([]);
         } else {
-          // When running locally, rewrite production subdomain URLs to a
-          // local route so testing works without per-station subdomains.
-          const stations = (body.stations as LiveStation[]).map((s) =>
-            isLocalHost ? { ...s, url: `/station?code=${s.code}` } : s,
-          );
+          // Rewrite subdomain URLs to local route so it works on any domain
+          // (localhost, Vercel, or custom domain) without per-station subdomains.
+          const stations = (body.stations as LiveStation[]).map((s) => ({
+            ...s,
+            url: `/station?code=${s.code}`,
+          }));
           setStations(stations);
           setErrorMessage("");
         }
